@@ -1,6 +1,7 @@
 # tagmeister
 
-A Windows desktop application for efficient image captioning using OpenAI's API. tagmeister helps you organize and caption your datasets with ease.
+A Windows desktop application for efficient image captioning using OpenAI's API.
+tagmeister helps you organize and caption your datasets with ease.
 
 ## Features
 
@@ -18,7 +19,7 @@ A Windows desktop application for efficient image captioning using OpenAI's API.
 
 ## Installation
 
-1. Download the latest release
+1. Download the latest release (tagmeister-portable.exe)
 2. Run the executable
 3. Enter your OpenAI API key in the settings
 4. Start captioning your images!
