@@ -914,8 +914,41 @@ class _CaptionEditorState extends State<CaptionEditor> {
         final imageFile = File(_imagePaths[i]);
         if (await imageFile.exists()) {
           final caption = await openAiService.generateImageCaption(_imagePaths[i], appState.selectedModel);
-          final processedCaption = openAiService.processCaption(caption);
-          final finalCaption = '${appState.prefixText}$processedCaption${appState.suffixText}'.trim();
+          var processedCaption = openAiService.processCaption(caption).trim();
+          
+          // Remove trailing comma from the processed caption if present
+          if (processedCaption.endsWith(',')) {
+            processedCaption = processedCaption.substring(0, processedCaption.length - 1).trim();
+          }
+          
+          // Build final caption with prefix and suffix
+          var finalCaption = '';
+          
+          // Handle prefix
+          var prefix = appState.prefixText.trim();
+          if (prefix.isNotEmpty) {
+            // Remove trailing comma and space if present
+            if (prefix.endsWith(', ') || prefix.endsWith(' ,')) {
+              prefix = prefix.substring(0, prefix.length - 2).trim();
+            } else if (prefix.endsWith(',')) {
+              prefix = prefix.substring(0, prefix.length - 1).trim();
+            }
+            finalCaption = prefix + ', ' + processedCaption;
+          } else {
+            finalCaption = processedCaption;
+          }
+          
+          // Handle suffix
+          var suffix = appState.suffixText.trim();
+          if (suffix.isNotEmpty) {
+            // Remove leading comma and space if present
+            if (suffix.startsWith(', ') || suffix.startsWith(' ,')) {
+              suffix = suffix.substring(2).trim();
+            } else if (suffix.startsWith(',')) {
+              suffix = suffix.substring(1).trim();
+            }
+            finalCaption = finalCaption + ', ' + suffix;
+          }
           
           setState(() {
             if (_imagePaths[i] == appState.selectedImage) {
