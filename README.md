@@ -1,4 +1,4 @@
-# tagmeister
+# tagmeister <img src="https://github.com/oshtz/tagmeister-osx/blob/main/tagmeister/Assets.xcassets/AppIcon.appiconset/AppIcon256%201.png?raw=true" alt="tagmeister logo" width="128" align="right"/>
 
 A Windows desktop application for efficient image captioning using OpenAI's API.
 tagmeister helps you organize and caption your datasets with ease.
