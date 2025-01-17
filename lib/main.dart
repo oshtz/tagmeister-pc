@@ -27,14 +27,39 @@ class AppState extends ChangeNotifier {
   final Set<String> selectedImages = {};
   final Map<String, String> captions = {};
   String apiKey = '';
+  bool _apiKeyVisible = false;
   String prefixText = '';
   String suffixText = '';
   String selectedModel = 'gpt-4o-mini';
   bool isDarkMode = true;
   double fontSize = 14.0;
   bool _initialized = false;
+  bool _isProcessing = false;
+  int _processedCount = 0;
+  int _totalToProcess = 0;
 
+  bool get apiKeyVisible => _apiKeyVisible;
   bool get isInitialized => _initialized;
+  bool get isProcessing => _isProcessing;
+  int get processedCount => _processedCount;
+  int get totalToProcess => _totalToProcess;
+
+  void toggleApiKeyVisibility() {
+    _apiKeyVisible = !_apiKeyVisible;
+    notifyListeners();
+  }
+
+  void setProcessingState(bool isProcessing, {int total = 0}) {
+    _isProcessing = isProcessing;
+    _totalToProcess = total;
+    _processedCount = 0;
+    notifyListeners();
+  }
+
+  void incrementProcessedCount() {
+    _processedCount++;
+    notifyListeners();
+  }
 
   Future<void> initialize() async {
     await _loadSettings();
@@ -450,14 +475,34 @@ class _MainScreenState extends State<MainScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text('API Key'),
-                                TextField(
-                                  obscureText: true,
-                                  decoration: const InputDecoration(
-                                    border: OutlineInputBorder(),
-                                    isDense: true,
-                                  ),
-                                  controller: TextEditingController(text: appState.apiKey),
-                                  onChanged: (value) => appState.setApiKey(value),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        obscureText: !appState.apiKeyVisible,
+                                        enabled: appState.apiKeyVisible,
+                                        decoration: InputDecoration(
+                                          border: const OutlineInputBorder(),
+                                          isDense: true,
+                                          hintText: appState.apiKeyVisible ? 'Enter API Key' : '••••••••••••••••',
+                                        ),
+                                        controller: TextEditingController(text: appState.apiKey),
+                                        onChanged: (value) => appState.setApiKey(value),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(
+                                        appState.apiKeyVisible 
+                                            ? Icons.visibility_off 
+                                            : Icons.visibility,
+                                        size: 20,
+                                      ),
+                                      onPressed: () => appState.toggleApiKeyVisibility(),
+                                      tooltip: appState.apiKeyVisible 
+                                          ? 'Hide API Key' 
+                                          : 'Show API Key',
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -496,6 +541,36 @@ class _MainScreenState extends State<MainScreen> {
                 ],
               ),
             ),
+            // Processing overlay
+            if (appState.isProcessing)
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                right: MediaQuery.of(context).size.width * rightPanelWidth,
+                child: Container(
+                  color: Colors.black54,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          'Processing ${appState.processedCount}/${appState.totalToProcess}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -618,7 +693,7 @@ class ImageList extends StatelessWidget {
                             ],
                           ),
                         ),
-                        if (state.selectedImages.contains(file.path))
+                        if (appState.selectedImages.contains(file.path))
                           Positioned(
                             top: 4,
                             right: 4,
@@ -686,11 +761,12 @@ class CaptionEditor extends StatefulWidget {
 
 class _CaptionEditorState extends State<CaptionEditor> {
   final TextEditingController _captionController = TextEditingController();
+  String? _lastSelectedImage;
   bool _isGenerating = false;
   double _progress = 0.0;
   List<String> _imagePaths = [];
   int _currentIndex = 0;
-  String? _lastSelectedImage;
+  bool _isCancelled = false;
 
   @override
   void initState() {
@@ -798,24 +874,30 @@ class _CaptionEditorState extends State<CaptionEditor> {
                           : Theme.of(context).colorScheme.primary,
                       foregroundColor: Theme.of(context).brightness == Brightness.dark
                           ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.secondary,
+                          : Theme.of(context).colorScheme.onPrimary,
                     ),
                     onPressed: _isGenerating 
                         ? null 
                         : () => _handleGenerateCaption(context, appState),
-                    icon: _isGenerating 
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Icon(Icons.auto_awesome, color: Theme.of(context).brightness == Brightness.dark 
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.secondary),
-                    label: Text(_isGenerating 
-                        ? 'Generating ${_currentIndex + 1}/${_imagePaths.length}' 
-                        : 'Generate'),
+                    icon: Icon(Icons.auto_awesome, color: Theme.of(context).brightness == Brightness.dark
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onPrimary),
+                    label: const Text('Generate'),
                   ),
+                  if (_isGenerating)
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isCancelled = true;
+                        });
+                      },
+                      icon: const Icon(Icons.cancel, color: Colors.white),
+                      label: const Text('Cancel'),
+                    ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -892,24 +974,30 @@ class _CaptionEditorState extends State<CaptionEditor> {
   Future<void> _startBatchProcessing(BuildContext context, List<String> imagePaths) async {
     if (!mounted) return;
 
+    final appState = Provider.of<AppState>(context, listen: false);
+    appState.setProcessingState(true, total: imagePaths.length);
+
     setState(() {
       _isGenerating = true;
       _progress = 0.0;
       _imagePaths = imagePaths;
       _currentIndex = 0;
+      _isCancelled = false;
     });
 
-    final appState = Provider.of<AppState>(context, listen: false);
     final openAiService = OpenAIService(appState.apiKey);
 
     try {
       for (int i = 0; i < _imagePaths.length; i++) {
-        if (!mounted) break;
+        if (!mounted || _isCancelled) break;
 
         setState(() {
           _currentIndex = i;
           _progress = i / _imagePaths.length;
         });
+
+        // Auto-switch to current image
+        appState.setSelectedImage(_imagePaths[i]);
 
         final imageFile = File(_imagePaths[i]);
         if (await imageFile.exists()) {
@@ -960,20 +1048,30 @@ class _CaptionEditorState extends State<CaptionEditor> {
           // Save caption
           final captionPath = _imagePaths[i].replaceAll(RegExp(r'\.(png|jpg|jpeg|gif)$'), '.txt');
           await File(captionPath).writeAsString(finalCaption);
-          appState.updateCaption(_imagePaths[i], finalCaption);
+          appState.captions[_imagePaths[i]] = finalCaption;
+          appState.incrementProcessedCount();
         }
       }
+
+      // Update UI after completion
+      setState(() {
+        _isGenerating = false;
+        _progress = 1.0;
+        _isCancelled = false;
+      });
+      appState.setProcessingState(false);
+
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error generating captions: $e')),
-      );
-    } finally {
       if (mounted) {
         setState(() {
           _isGenerating = false;
-          _progress = 1.0;
+          _progress = 0.0;
+          _isCancelled = false;
         });
+        appState.setProcessingState(false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error generating captions: $e')),
+        );
       }
     }
   }
