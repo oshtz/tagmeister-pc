@@ -31,6 +31,7 @@ class AppState extends ChangeNotifier {
   String prefixText = '';
   String suffixText = '';
   String selectedModel = 'gpt-4o-mini';
+  String selectedPromptStyle = 'Natural Language Style';
   bool isDarkMode = true;
   double fontSize = 14.0;
   bool _initialized = false;
@@ -207,12 +208,19 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setPromptStyle(String style) {
+    selectedPromptStyle = style;
+    _saveSettings();
+    notifyListeners();
+  }
+
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     apiKey = prefs.getString('api_key') ?? '';
     isDarkMode = prefs.getBool('is_dark_mode') ?? true;
     fontSize = prefs.getDouble('font_size') ?? 14.0;
     selectedModel = prefs.getString('selected_model') ?? 'gpt-4o-mini';
+    selectedPromptStyle = prefs.getString('selected_prompt_style') ?? 'Natural Language Style';
   }
 
   Future<void> _saveSettings() async {
@@ -221,6 +229,7 @@ class AppState extends ChangeNotifier {
     await prefs.setBool('is_dark_mode', isDarkMode);
     await prefs.setDouble('font_size', fontSize);
     await prefs.setString('selected_model', selectedModel);
+    await prefs.setString('selected_prompt_style', selectedPromptStyle);
   }
 
   Future<void> _loadImagesFromDirectory() async {
@@ -816,21 +825,48 @@ class _CaptionEditorState extends State<CaptionEditor> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Auto-Captioner', style: TextStyle(fontSize: 16)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Auto-Captioner', style: TextStyle(fontSize: 16)),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove),
+                            onPressed: () => appState.adjustFontSize(-1),
+                            tooltip: 'Decrease font size',
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add),
+                            onPressed: () => appState.adjustFontSize(1),
+                            tooltip: 'Increase font size',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.remove),
-                        onPressed: () => appState.adjustFontSize(-1),
-                        tooltip: 'Decrease font size',
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.add),
-                        onPressed: () => appState.adjustFontSize(1),
-                        tooltip: 'Increase font size',
+                      const Text('Style:'),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: appState.selectedPromptStyle,
+                          items: const [
+                            DropdownMenuItem(value: 'Natural Language Style', child: Text('Natural Language Style')),
+                            DropdownMenuItem(value: 'Booru SDXL Style', child: Text('Booru SDXL Style')),
+                          ],
+                          onChanged: (String? value) {
+                            if (value != null) {
+                              appState.setPromptStyle(value);
+                            }
+                          },
+                        ),
                       ),
                     ],
                   ),
@@ -1001,7 +1037,11 @@ class _CaptionEditorState extends State<CaptionEditor> {
 
         final imageFile = File(_imagePaths[i]);
         if (await imageFile.exists()) {
-          final caption = await openAiService.generateImageCaption(_imagePaths[i], appState.selectedModel);
+          final caption = await openAiService.generateImageCaption(
+            _imagePaths[i], 
+            appState.selectedModel,
+            promptStyle: appState.selectedPromptStyle
+          );
           var processedCaption = openAiService.processCaption(caption).trim();
           
           // Remove trailing comma from the processed caption if present
