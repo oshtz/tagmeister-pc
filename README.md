@@ -5,6 +5,8 @@ tagmeister helps you organize and caption your datasets with ease.
 
 ---
 
+![Demo](public/tagmeister-gif.gif)
+
 ## Features
 
 - Browse and view images from any directory
