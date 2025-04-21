@@ -17,7 +17,12 @@ import {
   Collapse,
   Accordion,
   AccordionSummary,
-  AccordionDetails
+  AccordionDetails,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
@@ -324,89 +329,46 @@ const CaptionEditor: React.FC = () => {
     return finalCaption;
   };
 
-  // Handle caption generation
-  const handleGenerateCaption = async () => {
-    // Check if we have the required API key for the selected model
-    const provider = getProviderForModel(selectedModel);
-    
-    if (provider === 'anthropic' && !anthropicApiKey) {
-      alert('Please enter an Anthropic API key first');
-      return;
-    } else if (provider === 'openai' && !apiKey) {
-      alert('Please enter an OpenAI API key first');
-      return;
-    }
-    
-    if (selectedImages.size === 0) {
-      alert('Please select at least one image');
-      return;
-    }
-    
-    const imagesToProcess = Array.from(selectedImages);
-    
-    // For multiple images, show confirmation
-    if (imagesToProcess.length > 1) {
-      const confirmed = window.confirm(`Generate captions for ${imagesToProcess.length} selected images?`);
-      if (!confirmed) return;
-    }
-    
+  // State for custom confirmation dialog
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [pendingImagesToProcess, setPendingImagesToProcess] = useState<string[] | null>(null);
+
+  // Refactored caption generation logic
+  const startCaptionGeneration = async (imagesToProcess: string[]) => {
     setIsGenerating(true);
     setProcessingState(true, imagesToProcess.length);
-    // Reset interrupt flag at the start
     setShouldInterrupt(false);
-    
-    // Track successfully processed images
     const processedImages: string[] = [];
-    
     try {
-      // Process images sequentially
       for (let i = 0; i < imagesToProcess.length; i++) {
-        // Check if we should interrupt the process
         if (checkShouldInterrupt()) {
           console.log('Caption generation interrupted by user');
           break;
         }
-        
         const imagePath = imagesToProcess[i];
-        
-        // Set the current image as the selected image to show it in the viewer
         useAppStore.setState({ 
           selectedImage: imagePath, 
           selectedImages: new Set([...selectedImages])
         });
-        
         try {
-          // Process this image
           await processSingleImage(imagePath);
-          
-          // Add to processed images list
           processedImages.push(imagePath);
         } catch (error) {
           console.error(`Error generating caption for ${imagePath}:`, error);
-          
-          // Propagate the error to the outer try-catch block
-          // This will abort the entire process and uncheck processed images
           throw error;
         }
       }
     } catch (error) {
       console.error('Error in caption generation:', error);
-      
-      // Determine which provider was being used
       const provider = getProviderForModel(selectedModel);
-      
-      // Handle specific error types
       let errorMessage = 'An error occurred during caption generation.';
-      
       if (error instanceof Error) {
-        // Check for rate limit errors
         if (error.message.includes('429') || 
             error.message.toLowerCase().includes('rate limit')) {
           errorMessage = `${provider === 'anthropic' ? 'Anthropic' : 'OpenAI'} API rate limit exceeded. Please try again later.`;
         } else if (error.message.includes('401')) {
           errorMessage = `Invalid API key. Please check your ${provider === 'anthropic' ? 'Anthropic' : 'OpenAI'} API key.`;
         } else if (error.message.includes('400')) {
-          // If the error message contains a more specific reason after the 400, show it
           const match = error.message.match(/400[^:]*: (.+)/);
           if (match && match[1]) {
             errorMessage = `Bad request: ${match[1]}`;
@@ -417,18 +379,11 @@ const CaptionEditor: React.FC = () => {
           errorMessage = `Error: ${error.message}`;
         }
       }
-      
-      // Show error to user
       alert(errorMessage);
-      
-      // Uncheck all processed images
       if (processedImages.length > 0) {
-        // Remove processed images from selection
         const remainingImages = Array.from(selectedImages).filter(
           img => !processedImages.includes(img)
         );
-        
-        // Update selection state
         useAppStore.setState({ 
           selectedImages: new Set(remainingImages),
           selectedImage: remainingImages.length > 0 ? remainingImages[0] : null
@@ -437,9 +392,32 @@ const CaptionEditor: React.FC = () => {
     } finally {
       setIsGenerating(false);
       setProcessingState(false);
-      // Reset interrupt flag when done
       setShouldInterrupt(false);
     }
+  };
+
+  // Handle caption generation
+  const handleGenerateCaption = async () => {
+    const provider = getProviderForModel(selectedModel);
+    if (provider === 'anthropic' && !anthropicApiKey) {
+      alert('Please enter an Anthropic API key first');
+      return;
+    } else if (provider === 'openai' && !apiKey) {
+      alert('Please enter an OpenAI API key first');
+      return;
+    }
+    if (selectedImages.size === 0) {
+      alert('Please select at least one image');
+      return;
+    }
+    const imagesToProcess = Array.from(selectedImages);
+    if (imagesToProcess.length > 1) {
+      setPendingImagesToProcess(imagesToProcess);
+      setConfirmDialogOpen(true);
+      return;
+    }
+    // Single image: start immediately
+    startCaptionGeneration(imagesToProcess);
   };
   
   // Handle stopping the caption generation process
@@ -1035,6 +1013,36 @@ const CaptionEditor: React.FC = () => {
         >
           {isGenerating ? 'Generating...' : 'Generate Caption'}
         </Button>
+
+        {/* Custom confirmation dialog for multi-image captioning */}
+        <Dialog
+          open={confirmDialogOpen}
+          onClose={() => setConfirmDialogOpen(false)}
+        >
+          <DialogTitle>Confirm Caption Generation</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Generate captions for {pendingImagesToProcess ? pendingImagesToProcess.length : 0} selected images?
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => {
+              setConfirmDialogOpen(false);
+              setPendingImagesToProcess(null);
+            }} color="secondary">
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              setConfirmDialogOpen(false);
+              if (pendingImagesToProcess) {
+                startCaptionGeneration(pendingImagesToProcess);
+                setPendingImagesToProcess(null);
+              }
+            }} color="primary" autoFocus>
+              Confirm
+            </Button>
+          </DialogActions>
+        </Dialog>
       
         <Typography 
           variant="subtitle2" 
