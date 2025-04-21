@@ -5,7 +5,11 @@ tagmeister helps you organize and caption your datasets with ease.
 
 ---
 
-![Demo](public/tagmeister-gif.gif)
+<div align="center">
+
+  <img src="public/tagmeister-gif.gif" alt="Demo" />
+
+</div>
 
 ## Features
 
