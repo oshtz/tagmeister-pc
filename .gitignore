@@ -1,80 +1,24 @@
-# Miscellaneous
-*.class
+# Logs
+logs
 *.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
+node_modules
+dist
+dist-ssr
+*.local
 
-# Visual Studio Code related
+# Editor directories and files
 .vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
 !.vscode/extensions.json
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
-*.exe
-*.pdb
-
-# Symbolication related
-app.*.symbols
-
-# Obfuscation related
-app.*.map.json
-
-# Windows specific
-**/windows/flutter/generated_plugin_registrant.
-**/windows/flutter/generated_plugins.cmake
-**/windows/**/Generated.props
-**/windows/**/Generated.targets
-**/windows/**/cmakefiles/
-**/windows/**/x64/
-**/windows/**/Debug/
-**/windows/**/Release/
-**/windows/**/Runner.sln
-**/windows/**/Runner.vcxproj.user
-
-# Temporary files
-*.temp
-*.tmp
-.*.swp
-*~
-
-# Environment and secrets
-.env*
-*.env
-api_keys.json
-
-# IDE-specific files
+.idea
+.DS_Store
 *.suo
-*.user
-*.userosscache
-*.sln.docstates
-*.userprefs
-
-# Dependencies
-/windows/flutter/ephemeral/
-/android/app/debug
-/android/app/profile
-/android/app/release
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
