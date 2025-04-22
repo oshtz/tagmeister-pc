@@ -16,6 +16,7 @@ interface Caption {
 }
 
 interface AppState {
+  directorySelectionError: string | null;
   // Directory and image selection
   currentDirectory: string | null;
   selectedImage: string | null;
@@ -102,6 +103,7 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set, get) => ({
   // Initial state
+  directorySelectionError: null,
   currentDirectory: null,
   selectedImage: null,
   lastSelectedImage: null,
@@ -393,10 +395,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     } catch (error) {
       console.error('Error selecting directory:', error);
-      
       // Since both the dialog plugin and the fallback failed, show an error message
       console.error('Directory selection failed. Please try again.');
-      alert('Failed to open directory selection dialog. Please try again.');
+      set({ directorySelectionError: 'Failed to open directory selection dialog. Please try again.' });
     }
   },
   

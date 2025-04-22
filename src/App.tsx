@@ -20,6 +20,8 @@ import ImageList from "./components/ImageList";
 import ImageViewer from "./components/ImageViewer";
 import CaptionEditor from "./components/CaptionEditor";
 import TitleBar from "./components/TitleBar";
+import AlertDialog from "./components/AlertDialog";
+import NoDirectoryOverlay from "./components/NoDirectoryOverlay";
 import "./App.css";
 
 function App() {
@@ -34,7 +36,9 @@ function App() {
     leftPanelWidth,
     rightPanelWidth,
     setPanelWidth,
-    shouldInterrupt
+    shouldInterrupt,
+    directorySelectionError,
+    currentDirectory
   } = useAppStore();
   
   // Handle stopping the caption generation process
@@ -294,6 +298,9 @@ function App() {
           >
             <CaptionEditor />
           </Paper>
+          {/* Overlay when no directory is selected and not processing */}
+          {!isProcessing && !currentDirectory && <NoDirectoryOverlay />}
+
           {/* Global processing overlay that covers all panels */}
           {isProcessing && (
             <Box
@@ -349,6 +356,14 @@ function App() {
           )}
         </Box>
       </Box>
+      {/* Global AlertDialog for directory selection errors */}
+      <AlertDialog
+        open={!!directorySelectionError}
+        title="Directory Selection Error"
+        message={directorySelectionError || ""}
+        type="error"
+        onClose={() => useAppStore.setState({ directorySelectionError: null })}
+      />
     </ThemeProvider>
   );
 }

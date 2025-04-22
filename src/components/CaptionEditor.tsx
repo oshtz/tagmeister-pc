@@ -37,6 +37,7 @@ import { LMStudioService } from '../services/LMStudioService';
 import Popover from '@mui/material/Popover';
 import Slider from '@mui/material/Slider';
 import Tooltip from '@mui/material/Tooltip';
+import AlertDialog from './AlertDialog';
 
 // FontSizePopover component
 const FontSizePopover: React.FC<{
@@ -429,6 +430,29 @@ const CaptionEditor: React.FC = () => {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [pendingImagesToProcess, setPendingImagesToProcess] = useState<string[] | null>(null);
 
+  // State for alert dialog
+  const [alertDialogOpen, setAlertDialogOpen] = useState(false);
+  const [alertDialogMessage, setAlertDialogMessage] = useState('');
+  const [alertDialogTitle, setAlertDialogTitle] = useState<string | undefined>(undefined);
+  const [alertDialogType, setAlertDialogType] = useState<'info' | 'error' | 'confirm'>('info');
+  const [alertDialogOnConfirm, setAlertDialogOnConfirm] = useState<(() => void) | undefined>(undefined);
+
+  // Helper to show alert dialog
+  const showAlertDialog = (
+    message: string,
+    options?: {
+      title?: string;
+      type?: 'info' | 'error' | 'confirm';
+      onConfirm?: () => void;
+    }
+  ) => {
+    setAlertDialogMessage(message);
+    setAlertDialogTitle(options?.title);
+    setAlertDialogType(options?.type || 'info');
+    setAlertDialogOnConfirm(options?.onConfirm);
+    setAlertDialogOpen(true);
+  };
+
   // Refactored caption generation logic
   const startCaptionGeneration = async (imagesToProcess: string[]) => {
     setIsGenerating(true);
@@ -475,7 +499,7 @@ const CaptionEditor: React.FC = () => {
           errorMessage = `Error: ${error.message}`;
         }
       }
-      alert(errorMessage);
+      showAlertDialog(errorMessage, { type: 'error', title: 'Caption Generation Error' });
       if (processedImages.length > 0) {
         const remainingImages = Array.from(selectedImages).filter(
           img => !processedImages.includes(img)
@@ -496,14 +520,14 @@ const CaptionEditor: React.FC = () => {
   const handleGenerateCaption = async () => {
     const provider = getProviderForModel(selectedModel);
     if (provider === 'anthropic' && !anthropicApiKey) {
-      alert('Please enter an Anthropic API key first');
+      showAlertDialog('Please enter an Anthropic API key first', { type: 'error', title: 'Missing API Key' });
       return;
     } else if (provider === 'openai' && !apiKey) {
-      alert('Please enter an OpenAI API key first');
+      showAlertDialog('Please enter an OpenAI API key first', { type: 'error', title: 'Missing API Key' });
       return;
     }
     if (selectedImages.size === 0) {
-      alert('Please select at least one image');
+      showAlertDialog('Please select at least one image', { type: 'error', title: 'No Images Selected' });
       return;
     }
     const imagesToProcess = Array.from(selectedImages);
@@ -797,9 +821,9 @@ const CaptionEditor: React.FC = () => {
                   const ok = await checkLMStudioConnection();
                   if (ok) {
                     await fetchLMStudioModels();
-                    alert('LM Studio connected and models loaded.');
+                    showAlertDialog('LM Studio connected and models loaded.', { type: 'info', title: 'LM Studio Connected' });
                   } else {
-                    alert('Could not connect to LM Studio at the specified URL.');
+                    showAlertDialog('Could not connect to LM Studio at the specified URL.', { type: 'error', title: 'LM Studio Connection Failed' });
                   }
                 }}
               >
@@ -878,9 +902,9 @@ const CaptionEditor: React.FC = () => {
                   const ok = await useAppStore.getState().checkOllamaConnection();
                   if (ok) {
                     await useAppStore.getState().fetchOllamaModels();
-                    alert('Ollama connected and models loaded.');
+                    showAlertDialog('Ollama connected and models loaded.', { type: 'info', title: 'Ollama Connected' });
                   } else {
-                    alert('Could not connect to Ollama at the specified URL.');
+                    showAlertDialog('Could not connect to Ollama at the specified URL.', { type: 'error', title: 'Ollama Connection Failed' });
                   }
                 }}
               >
@@ -1113,34 +1137,34 @@ const CaptionEditor: React.FC = () => {
         </Button>
 
         {/* Custom confirmation dialog for multi-image captioning */}
-        <Dialog
+        <AlertDialog
           open={confirmDialogOpen}
-          onClose={() => setConfirmDialogOpen(false)}
-        >
-          <DialogTitle>Confirm Caption Generation</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              Generate captions for {pendingImagesToProcess ? pendingImagesToProcess.length : 0} selected images?
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => {
-              setConfirmDialogOpen(false);
+          title="Confirm Caption Generation"
+          message={`Generate captions for ${pendingImagesToProcess ? pendingImagesToProcess.length : 0} selected images?`}
+          type="confirm"
+          onClose={() => {
+            setConfirmDialogOpen(false);
+            setPendingImagesToProcess(null);
+          }}
+          onConfirm={() => {
+            setConfirmDialogOpen(false);
+            if (pendingImagesToProcess) {
+              startCaptionGeneration(pendingImagesToProcess);
               setPendingImagesToProcess(null);
-            }} color="secondary">
-              Cancel
-            </Button>
-            <Button onClick={() => {
-              setConfirmDialogOpen(false);
-              if (pendingImagesToProcess) {
-                startCaptionGeneration(pendingImagesToProcess);
-                setPendingImagesToProcess(null);
-              }
-            }} color="primary" autoFocus>
-              Confirm
-            </Button>
-          </DialogActions>
-        </Dialog>
+            }
+          }}
+          confirmLabel="Confirm"
+          cancelLabel="Cancel"
+        />
+        {/* Themed alert dialog for info/error */}
+        <AlertDialog
+          open={alertDialogOpen}
+          title={alertDialogTitle}
+          message={alertDialogMessage}
+          type={alertDialogType}
+          onClose={() => setAlertDialogOpen(false)}
+          onConfirm={alertDialogOnConfirm}
+        />
       
         <Typography 
           variant="subtitle2" 
