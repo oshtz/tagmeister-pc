@@ -13,6 +13,7 @@ import {
   Button,
   IconButton
 } from '@mui/material';
+import Tooltip from '@mui/material/Tooltip';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import SelectAllIcon from '@mui/icons-material/SelectAll';
 import { invoke } from '@tauri-apps/api/core';
@@ -291,46 +292,70 @@ const ImageList: React.FC = () => {
         
         {/* Right side - Action buttons */}
         <Box sx={{ display: 'flex', gap: 1 }}>
-          {currentDirectory && (
+          {/* Select All button moved to bottom */}
+          
+          <Tooltip title="Open Directory">
             <IconButton 
-              onClick={selectAll} 
-              title="Select All Images"
+              onClick={() => {
+                console.log('Folder button clicked');
+                selectDirectory();
+              }} 
               size="small"
               sx={{
-          borderRadius: '12px',
-          padding: '6px',
-          backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-          '&:hover': {
-            backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)'
-          }
+                borderRadius: '12px',
+                padding: '6px',
+                backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
+                '&:hover': {
+                  backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)'
+                }
               }}
             >
-              <SelectAllIcon fontSize="small" />
+              <FolderOpenIcon fontSize="small" />
             </IconButton>
-          )}
-          
-          <IconButton 
-            onClick={() => {
-              console.log('Folder button clicked');
-              selectDirectory();
-            }} 
-            title="Open Directory"
-            size="small"
-            sx={{
-              borderRadius: '12px',
-              padding: '6px',
-              backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-              '&:hover': {
-                backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)'
-              }
-            }}
-          >
-            <FolderOpenIcon fontSize="small" />
-          </IconButton>
+          </Tooltip>
         </Box>
       </Box>
       
       {renderContent()}
+      
+      {/* Anchored Select All button at the bottom */}
+      {currentDirectory && (
+        <Box
+          sx={{
+            position: 'sticky',
+            bottom: 0,
+            left: 0,
+            width: '100%',
+            bgcolor: theme => theme.palette.background.paper,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            py: 1,
+            borderTop: 1,
+            borderColor: 'divider',
+            zIndex: 2
+          }}
+        >
+          <Button
+            onClick={selectAll}
+            startIcon={<SelectAllIcon fontSize="small" />}
+            // variant="outlined"
+            size="medium"
+            sx={{
+              borderRadius: '12px',
+              padding: '8px 16px',
+              backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
+              '&:hover': {
+                backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)'
+              },
+              fontWeight: 600,
+              textTransform: 'none'
+            }}
+          >
+            Select All
+          </Button>
+        </Box>
+      )}
       
       {/* Processing overlay removed - now handled by App.tsx */}
     </Box>

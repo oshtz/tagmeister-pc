@@ -12,6 +12,7 @@ import {
   Divider,
   Button
 } from "@mui/material";
+import Tooltip from "@mui/material/Tooltip";
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
@@ -245,21 +246,22 @@ function App() {
               />
               
               {/* Theme toggle aligned to the right with squircle shape */}
-              <IconButton 
-                onClick={toggleTheme} 
-                title="Toggle Theme"
-                size="small"
-                sx={{
-                  borderRadius: '12px',
-                  padding: '6px',
-                  backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-                  '&:hover': {
-                    backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)'
-                  }
-                }}
-              >
-                {isDarkMode ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
-              </IconButton>
+              <Tooltip title="Toggle Theme">
+                <IconButton 
+                  onClick={toggleTheme} 
+                  size="small"
+                  sx={{
+                    borderRadius: '12px',
+                    padding: '6px',
+                    backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
+                    '&:hover': {
+                      backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)'
+                    }
+                  }}
+                >
+                  {isDarkMode ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+                </IconButton>
+              </Tooltip>
             </Box>
             
             <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>

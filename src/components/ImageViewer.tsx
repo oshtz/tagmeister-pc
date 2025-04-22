@@ -6,7 +6,7 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 
 const ImageViewer: React.FC = () => {
-  const { selectedImage, imageFiles, setSelectedImage } = useAppStore();
+  const { selectedImage, imageFiles, setSelectedImage, selectedImages } = useAppStore();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
@@ -200,6 +200,9 @@ const ImageViewer: React.FC = () => {
           {/* Current image info */}
           <Typography variant="body2">
             {getCurrentImageIndex()} / {imageFiles.length}
+            {selectedImages && selectedImages.size > 1 && (
+              <> ({selectedImages.size} Selected)</>
+            )}
           </Typography>
 
           {/* Navigation buttons */}

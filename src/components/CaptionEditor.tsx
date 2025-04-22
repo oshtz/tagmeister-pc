@@ -34,6 +34,96 @@ import LinkIcon from '@mui/icons-material/Link';
 import { OpenAIService } from '../services/OpenAIService';
 import { AnthropicService } from '../services/AnthropicService';
 import { LMStudioService } from '../services/LMStudioService';
+import Popover from '@mui/material/Popover';
+import Slider from '@mui/material/Slider';
+import Tooltip from '@mui/material/Tooltip';
+
+// FontSizePopover component
+const FontSizePopover: React.FC<{
+  fontSize: number;
+  adjustFontSize: (delta: number) => void;
+}> = ({ fontSize, adjustFontSize }) => {
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const [sliderValue, setSliderValue] = React.useState(fontSize);
+
+  // Sync slider with fontSize prop
+  React.useEffect(() => {
+    setSliderValue(fontSize);
+  }, [fontSize]);
+
+  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const open = Boolean(anchorEl);
+  const id = open ? 'font-size-popover' : undefined;
+
+  // When slider changes, call adjustFontSize with the delta
+  const handleSliderChange = (_: Event, value: number | number[]) => {
+    if (typeof value === 'number') {
+      setSliderValue(value);
+      adjustFontSize(value - fontSize);
+    }
+  };
+
+  return (
+    <>
+      <Tooltip title="Adjust caption font size">
+        <IconButton
+          aria-describedby={id}
+          onClick={handleClick}
+          size="small"
+          sx={{
+            borderRadius: '12px',
+            padding: '6px',
+            backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+            '&:hover': {
+              backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'
+            }
+          }}
+        >
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, letterSpacing: 1 }}>Aa</Typography>
+        </IconButton>
+      </Tooltip>
+      <Popover
+        id={id}
+        open={open}
+        anchorEl={anchorEl}
+        onClose={handleClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+        PaperProps={{
+          sx: { p: 2, minWidth: 180 }
+        }}
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+          <Typography variant="caption" sx={{ mb: 1 }}>Font Size</Typography>
+          <Slider
+            min={10}
+            max={48}
+            step={1}
+            value={sliderValue}
+            onChange={handleSliderChange}
+            valueLabelDisplay="auto"
+            sx={{ width: 120 }}
+            aria-label="Font size slider"
+          />
+          <Typography variant="body2" sx={{ fontFamily: '"Inconsolata", monospace' }}>{sliderValue}px</Typography>
+        </Box>
+      </Popover>
+    </>
+  );
+};
 
 const CaptionEditor: React.FC = () => {
   // Add global styles to completely remove any shadows from API key inputs
@@ -256,7 +346,7 @@ const CaptionEditor: React.FC = () => {
       if (selectedPromptStyle === 'SDXL (Booru Tags)') {
         promptText = "Generate a list of tags for this image in the style of Booru image boards and SDXL prompts. Focus on describing the visual elements, subjects, objects, settings, colors, lighting, composition, artistic style, and other relevant attributes. Format the output as a comma-separated list of tags without numbering or bullet points. Be specific and detailed, but keep each tag concise (1-3 words typically). Include tags for the main subject, background elements, colors, lighting, composition, style, medium, and any notable features. Do not include explanatory text or categorization headers - just provide the raw comma-separated tag list. Make sure to include mostly single-word tags, you can use some double-word tags if needed but mostly single word if possible.";
       } else {
-        promptText = "Describe this image in one concise paragraph, starting immediately with the primary subject (e.g., 'A watch,' 'A landscape,' 'A person'). Focus on key elements, their relationships, and notable details. Be specific and direct, avoiding any introductory phrases like 'The image shows' or 'I can see.' Prioritize the most important aspects and describe them factually. Identify the main subject quickly and accurately, noting its dominant characteristics such as size, color, shape, or position. For multiple elements, describe their spatial relationships. Include relevant details about composition, color schemes, lighting, and textures. Mention any actions, movements, functions, or unique features of objects, and appearances or behaviors of people or animals. Include any visible text, logos, or recognizable symbols. Describe what you see literally, without interpreting the image's style (e.g., don't use terms like 'stylized,' 'illustration,' or mention artistic techniques). Treat every subject as a real object or scene, not as a representation. Use varied and precise vocabulary to create a vivid description while maintaining a neutral tone. Avoid subjective interpretations unless crucial to understanding the image's content.";
+        promptText = "Describe this image in one concise paragraph, starting immediately with the primary subject (e.g., 'Watch,' 'Landscape,' 'Person'). Focus on key elements, their relationships, and notable details. Be specific and direct, avoiding any introductory phrases like 'The image shows' or 'I can see.' Prioritize the most important aspects and describe them factually. Identify the main subject quickly and accurately, noting its dominant characteristics such as size, color, shape, or position. For multiple elements, describe their spatial relationships. Include relevant details about composition, color schemes, lighting, and textures. Mention any actions, movements, functions, or unique features of objects, and appearances or behaviors of people or animals. Include any visible text, logos, or recognizable symbols. Describe what you see literally, without interpreting the image's style (e.g., don't use terms like 'stylized,' 'illustration,' or mention artistic techniques). Treat every subject as a real object or scene, not as a representation. Use varied and precise vocabulary to create a vivid description while maintaining a neutral tone. Avoid subjective interpretations unless crucial to understanding the image's content.";
       }
       // Remove ollama: prefix and :latest suffix for model id
       const modelId = selectedModel.replace(/^ollama:/, '').replace(/:latest$/, '');
@@ -322,6 +412,12 @@ const CaptionEditor: React.FC = () => {
 
     // Save caption to file
     await saveCaption(imagePath, finalCaption);
+
+    // Refresh caption from store to ensure UI shows latest prefix/suffix
+    setCaption(captions[imagePath] || finalCaption);
+
+    // Ensure sidebar preview updates by forcing captions object update in store
+    useAppStore.setState({ captions: { ...captions, [imagePath]: finalCaption } });
 
     // Increment processed count
     incrementProcessedCount();
@@ -679,23 +775,37 @@ const CaptionEditor: React.FC = () => {
                 })
               }}
             />
-            <IconButton
-              color="primary"
-              size="small"
-              sx={{ ml: 1 }}
+            <Tooltip
               title="Check LM Studio Connection"
-              onClick={async () => {
-                const ok = await checkLMStudioConnection();
-                if (ok) {
-                  await fetchLMStudioModels();
-                  alert('LM Studio connected and models loaded.');
-                } else {
-                  alert('Could not connect to LM Studio at the specified URL.');
-                }
+              placement="right"
+              PopperProps={{
+                modifiers: [
+                  {
+                    name: 'offset',
+                    options: {
+                      offset: [-8, 0],
+                    },
+                  },
+                ],
               }}
             >
-              <LinkIcon />
-            </IconButton>
+              <IconButton
+                color="primary"
+                size="small"
+                sx={{ ml: 1 }}
+                onClick={async () => {
+                  const ok = await checkLMStudioConnection();
+                  if (ok) {
+                    await fetchLMStudioModels();
+                    alert('LM Studio connected and models loaded.');
+                  } else {
+                    alert('Could not connect to LM Studio at the specified URL.');
+                  }
+                }}
+              >
+                <LinkIcon />
+              </IconButton>
+            </Tooltip>
           </Box>
           {lmStudioAvailable && lmStudioModels.length === 0 && (
             <Typography variant="caption" color="warning.main">
@@ -746,23 +856,37 @@ const CaptionEditor: React.FC = () => {
                 })
               }}
             />
-            <IconButton
-              color="primary"
-              size="small"
-              sx={{ ml: 1 }}
+            <Tooltip
               title="Check Ollama Connection"
-              onClick={async () => {
-                const ok = await useAppStore.getState().checkOllamaConnection();
-                if (ok) {
-                  await useAppStore.getState().fetchOllamaModels();
-                  alert('Ollama connected and models loaded.');
-                } else {
-                  alert('Could not connect to Ollama at the specified URL.');
-                }
+              placement="right"
+              PopperProps={{
+                modifiers: [
+                  {
+                    name: 'offset',
+                    options: {
+                      offset: [-8, 0],
+                    },
+                  },
+                ],
               }}
             >
-              <LinkIcon />
-            </IconButton>
+              <IconButton
+                color="primary"
+                size="small"
+                sx={{ ml: 1 }}
+                onClick={async () => {
+                  const ok = await useAppStore.getState().checkOllamaConnection();
+                  if (ok) {
+                    await useAppStore.getState().fetchOllamaModels();
+                    alert('Ollama connected and models loaded.');
+                  } else {
+                    alert('Could not connect to Ollama at the specified URL.');
+                  }
+                }}
+              >
+                <LinkIcon />
+              </IconButton>
+            </Tooltip>
           </Box>
           {useAppStore.getState().ollamaAvailable && useAppStore.getState().ollamaModels.length === 0 && (
             <Typography variant="caption" color="warning.main">
@@ -783,38 +907,11 @@ const CaptionEditor: React.FC = () => {
         >
           Auto-Captioner
         </Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <IconButton 
-        onClick={() => adjustFontSize(-1)}
-        size="small"
-        title="Decrease font size"
-        sx={{
-          borderRadius: '12px',
-          padding: '6px',
-          backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-          '&:hover': {
-            backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)'
-          }
-        }}
-          >
-        <RemoveIcon fontSize="small" />
-          </IconButton>
-          <IconButton 
-        onClick={() => adjustFontSize(1)}
-        size="small" 
-        title="Increase font size"
-        sx={{
-          borderRadius: '12px',
-          padding: '6px',
-          backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-          '&:hover': {
-            backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)'
-          }
-        }}
-          >
-        <AddIcon fontSize="small" />
-          </IconButton>
-        </Box>
+        {/* Font size popover control */}
+        <FontSizePopover
+          fontSize={fontSize}
+          adjustFontSize={adjustFontSize}
+        />
       </Box>
       
       <Grid container spacing={2} sx={{ mb: 2 }}>
