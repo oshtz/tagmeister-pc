@@ -43,7 +43,7 @@ tagmeister helps you organize and caption your datasets with ease.
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/tagmeister.git
+git clone https://github.com/oshtz/tagmeister-pc.git
 
 # Navigate to the project directory
 cd tagmeister
